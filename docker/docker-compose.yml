@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # Flarum Forum with Security Gateway
+  flarum:
+    build:
+      context: .
+      target: development
+    container_name: flarum-forum
+    ports:
+      - "8080:80"
+    volumes:
+      - ./flarum-data:/var/www/flarum/public/assets
+      - ./security-gateway:/var/www/security-gateway
+      - ./logs:/var/log/nginx
+    environment:
+      - FLARUM_DEBUG=true
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_DATABASE=flarum
+      - DB_USERNAME=flarum
+      - DB_PASSWORD=flarum_secret_password
+      - FORUM_URL=http://localhost:8080
+      - ONION_URL=your-onion-address-here.onion
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - flarum-network
+    restart: unless-stopped
+
+  # MariaDB Database
+  mariadb:
+    image: mariadb:10.11
+    container_name: flarum-db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_secret_password
+      - MYSQL_DATABASE=flarum
+      - MYSQL_USER=flarum
+      - MYSQL_PASSWORD=flarum_secret_password
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - flarum-network
+    restart: unless-stopped
+
+  # Redis for session/cache (optional but recommended)
+  redis:
+    image: redis:7-alpine
+    container_name: flarum-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - flarum-network
+    restart: unless-stopped
+
+  # phpMyAdmin for database management (dev only)
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: flarum-phpmyadmin
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_HOST=mariadb
+      - PMA_USER=flarum
+      - PMA_PASSWORD=flarum_secret_password
+    depends_on:
+      - mariadb
+    networks:
+      - flarum-network
+    profiles:
+      - dev
+
+networks:
+  flarum-network:
+    driver: bridge
+
+volumes:
+  mariadb-data:
+  redis-data:

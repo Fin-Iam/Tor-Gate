@@ -38,7 +38,8 @@ export default function DdosProtection() {
     <TerminalLayout header="LAYER_1 // TRAFFIC_ANALYSIS">
       <div className="text-center space-y-12 py-8">
         <div className="space-y-4">
-          <GlitchText text="SYSTEM UNDER HIGH LOAD" as="h1" className="text-3xl text-primary" />
+          <GlitchText text="TRIPPIES FORUM" as="h1" className="text-3xl text-primary" />
+          <p className="text-primary/50 text-xs mt-1">SYSTEM UNDER HIGH LOAD</p>
           <p className="text-primary/70 font-mono text-sm uppercase tracking-wider">
             Analyzing request signature...
           </p>

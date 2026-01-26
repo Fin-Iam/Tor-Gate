@@ -35,7 +35,7 @@ export default function AccessGranted() {
             className="text-4xl md:text-6xl text-green-500 font-bold tracking-tighter" 
           />
           <p className="text-xl md:text-2xl font-mono text-green-400/80">
-            WELCOME TO THE HIDDEN SERVICE
+            WELCOME TO TRIPPIES FORUM
           </p>
         </div>
 

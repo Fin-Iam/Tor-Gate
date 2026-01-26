@@ -5,8 +5,8 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import * as openpgp from "openpgp";
 
-// Mock Onion URL for the captcha
-const ONION_URL = "flarumv2darkwebforumxyz123456789.onion";
+// TrippiesForum Onion URL for the captcha
+const ONION_URL = "hiynu3jeowprbbp2haydjrakwmyjrf2ltqebplixdbgew7l33hfsjbad.onion";
 
 export async function registerRoutes(
   httpServer: Server,
