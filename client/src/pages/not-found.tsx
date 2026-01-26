@@ -1,21 +1,32 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { TerminalLayout } from "@/components/TerminalLayout";
+import { Link } from "wouter";
+import { AlertTriangle } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md mx-4">
-        <CardContent className="pt-6">
-          <div className="flex mb-4 gap-2">
-            <AlertCircle className="h-8 w-8 text-red-500" />
-            <h1 className="text-2xl font-bold text-gray-900">404 Page Not Found</h1>
-          </div>
-
-          <p className="mt-4 text-sm text-gray-600">
-            Did you forget to add the page to the router?
+    <TerminalLayout header="ERROR // 404_NOT_FOUND">
+      <div className="flex flex-col items-center justify-center py-12 text-center space-y-8">
+        <AlertTriangle className="w-20 h-20 text-destructive animate-pulse" />
+        
+        <div className="space-y-2">
+          <h1 className="text-4xl font-mono text-destructive tracking-widest">
+            ERROR 404
+          </h1>
+          <p className="text-primary/60 font-mono">
+            THE REQUESTED RESOURCE DOES NOT EXIST IN THIS SECTOR.
           </p>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+
+        <div className="p-4 border border-destructive/30 bg-destructive/5 font-mono text-xs text-left w-full max-w-md">
+          <p>{">"} TRACE_ROUTE: FAILED</p>
+          <p>{">"} PING_HOST: UNREACHABLE</p>
+          <p>{">"} SUGGESTION: RETURN_TO_BASE</p>
+        </div>
+
+        <Link href="/" className="px-8 py-3 bg-destructive/10 border border-destructive text-destructive font-mono uppercase hover:bg-destructive hover:text-black transition-all">
+          Return to Gateway
+        </Link>
+      </div>
+    </TerminalLayout>
   );
 }
