@@ -1,16 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useForm } from "react-hook-form";
 import { TerminalLayout } from "@/components/TerminalLayout";
 import { TerminalButton } from "@/components/TerminalButton";
 import { GlitchText } from "@/components/GlitchText";
 import { useCaptcha, useVerifyCaptcha } from "@/hooks/use-auth";
-import { Terminal, Lock } from "lucide-react";
+import { Terminal, Lock, RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-
-type CaptchaFormValues = {
-  chars: string[];
-};
 
 export default function Captcha() {
   const [_, setLocation] = useLocation();
@@ -18,23 +13,21 @@ export default function Captcha() {
   const verifyMutation = useVerifyCaptcha();
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // We manage the input state manually for the segmented inputs to handle focus management better
-  const [inputs, setInputs] = useState<string[]>([]);
+  const [inputs, setInputs] = useState<string[]>(new Array(6).fill(""));
 
   useEffect(() => {
     if (captcha) {
-      setInputs(new Array(captcha.indices.length).fill(""));
+      setInputs(new Array(captcha.count).fill(""));
     }
   }, [captcha]);
 
   const handleInputChange = (index: number, value: string) => {
-    if (value.length > 1) value = value.slice(-1); // Only take last char
+    if (value.length > 1) value = value.slice(-1);
     
     const newInputs = [...inputs];
     newInputs[index] = value;
     setInputs(newInputs);
 
-    // Auto-advance focus
     if (value && index < inputs.length - 1) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -47,16 +40,21 @@ export default function Captcha() {
   };
 
   const onSubmit = () => {
+    if (!captcha) return;
+    
     if (inputs.some(c => !c)) {
       toast({
         variant: "destructive",
         title: "INCOMPLETE_DATA",
-        description: "Please fill in all missing characters.",
+        description: "Please fill in all 6 missing characters.",
       });
       return;
     }
 
-    verifyMutation.mutate({ characters: inputs }, {
+    verifyMutation.mutate({ 
+      sessionId: captcha.sessionId,
+      characters: inputs 
+    }, {
       onSuccess: () => {
         toast({
           title: "IDENTITY_CONFIRMED",
@@ -69,14 +67,18 @@ export default function Captcha() {
         toast({
           variant: "destructive",
           title: "ACCESS_DENIED",
-          description: "Incorrect URL segment. Verification failed.",
+          description: "Incorrect characters. Verification failed.",
         });
-        // Clear inputs on failure
-        setInputs(new Array(captcha?.indices.length || 0).fill(""));
+        setInputs(new Array(6).fill(""));
         inputRefs.current[0]?.focus();
-        refetch(); // Get a new captcha
+        refetch();
       }
     });
+  };
+
+  const handleRefresh = () => {
+    setInputs(new Array(6).fill(""));
+    refetch();
   };
 
   if (isLoading) {
@@ -103,75 +105,67 @@ export default function Captcha() {
     );
   }
 
-  // Construct the visual representation of the URL with inputs
-  const urlParts = [];
-  let lastIndex = 0;
-
-  // This is a simplified visual reconstruction logic
-  // In a real app, you might want more complex logic to perfectly interleave text and inputs
-  // For this demo, we'll just show the prompt clearly.
-  
   return (
     <TerminalLayout header="LAYER_2 // ONION_VERIFICATION">
       <div className="space-y-8">
         <div className="text-center space-y-2">
           <div className="flex justify-center mb-4">
-             <Lock className="w-16 h-16 text-primary/80" />
+            <Lock className="w-16 h-16 text-primary/80" />
           </div>
           <GlitchText text="SECURITY CHALLENGE" as="h2" className="text-2xl text-primary" />
           <p className="text-primary/60 text-sm max-w-md mx-auto">
-            Verify you are human by completing the missing characters of our hidden service address.
+            Enter the 6 missing characters marked [1]-[6] from our hidden service address.
           </p>
         </div>
 
-        <div className="bg-primary/5 border border-primary/20 p-8 rounded-sm relative overflow-hidden">
-          <div className="font-mono text-xl md:text-3xl text-center tracking-wider break-all leading-loose">
-            {/* 
-              This is a tricky display. We need to show the masked URL but replace the missing chars with input boxes.
-              Since we don't have the full original URL (security), we only have masked + indices.
-              We can assume the 'masked' string has placeholders like '_' or dots.
-            */}
-            
-            <div className="flex flex-wrap items-center justify-center gap-1 md:gap-2">
-              {captcha.onionUrlMasked.split('').map((char, i) => {
-                // If this index corresponds to one of our missing indices...
-                // Wait, the 'onionUrlMasked' returned by API likely has placeholders.
-                // But we need to map the INPUTS to specific visual slots.
-                
-                // Let's assume the API returns indices relative to the FULL string length.
-                // And we render inputs for those indices.
-                
-                const isInputIndex = captcha.indices.includes(i);
-                
-                if (isInputIndex) {
-                  // Find which input number this is (0, 1, 2...)
-                  const inputIndex = captcha.indices.indexOf(i);
-                  
-                  return (
-                    <input
-                      key={`input-${i}`}
-                      ref={el => inputRefs.current[inputIndex] = el}
-                      type="text"
-                      maxLength={1}
-                      value={inputs[inputIndex] || ""}
-                      onChange={(e) => handleInputChange(inputIndex, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(inputIndex, e)}
-                      className="w-8 h-10 md:w-10 md:h-12 bg-black border-b-2 border-primary text-center text-primary font-bold text-xl focus:outline-none focus:border-white focus:bg-primary/10 transition-colors uppercase"
-                      autoFocus={inputIndex === 0}
-                    />
-                  );
-                }
-                
-                return <span key={i} className="text-primary/70 select-none">{char}</span>;
-              })}
-            </div>
+        <div className="bg-black border border-primary/30 p-4 relative overflow-hidden">
+          <div className="flex justify-end mb-2">
+            <button 
+              onClick={handleRefresh}
+              className="text-primary/50 hover:text-primary transition-colors p-1"
+              title="Get new captcha"
+              data-testid="button-refresh-captcha"
+            >
+              <RefreshCw className="w-5 h-5" />
+            </button>
           </div>
           
-          {/* Decorative Corner markers */}
-          <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary" />
-          <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-primary" />
-          <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-primary" />
-          <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-primary" />
+          <img 
+            src={captcha.imageBase64} 
+            alt="Captcha challenge - enter the missing characters"
+            className="w-full h-auto max-w-full border border-primary/20"
+            style={{ imageRendering: 'pixelated' }}
+            data-testid="img-captcha"
+          />
+          
+          <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-primary" />
+          <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-primary" />
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-primary" />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-primary" />
+        </div>
+
+        <div className="space-y-4">
+          <p className="text-center text-primary/70 text-sm font-mono">
+            ENTER THE 6 MISSING CHARACTERS:
+          </p>
+          <div className="flex justify-center gap-3">
+            {inputs.map((value, i) => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <span className="text-xs text-primary/50 font-mono">[{i + 1}]</span>
+                <input
+                  ref={el => inputRefs.current[i] = el}
+                  type="text"
+                  maxLength={1}
+                  value={value}
+                  onChange={(e) => handleInputChange(i, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(i, e)}
+                  className="w-12 h-14 bg-black border-2 border-primary/50 text-center text-primary font-bold text-2xl focus:outline-none focus:border-primary focus:bg-primary/10 transition-colors uppercase font-mono"
+                  autoFocus={i === 0}
+                  data-testid={`input-captcha-char-${i}`}
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="pt-4">
@@ -179,6 +173,7 @@ export default function Captcha() {
             onClick={onSubmit} 
             isLoading={verifyMutation.isPending}
             className="text-lg py-6"
+            data-testid="button-verify-captcha"
           >
             VERIFY IDENTITY
           </TerminalButton>

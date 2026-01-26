@@ -64,16 +64,19 @@ export const api = {
       path: '/api/captcha',
       responses: {
         200: z.object({
-          onionUrlMasked: z.string(), // Example: "examp......ion"
-          indices: z.array(z.number()),
-          length: z.number(),
+          imageBase64: z.string(),
+          sessionId: z.string(),
+          count: z.number(),
         }),
       },
     },
     verify: {
       method: 'POST' as const,
       path: '/api/captcha/verify',
-      input: z.object({ characters: z.array(z.string()) }),
+      input: z.object({ 
+        sessionId: z.string(),
+        characters: z.array(z.string()) 
+      }),
       responses: {
         200: z.object({ success: z.boolean() }),
         400: z.object({ success: z.boolean() }),

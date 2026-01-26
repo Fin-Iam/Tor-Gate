@@ -11,14 +11,32 @@ export interface IStorage {
   storeChallenge(username: string, code: string): Promise<string>; // returns challengeId
   getChallenge(challengeId: string): Promise<{ username: string; code: string } | undefined>;
   removeChallenge(challengeId: string): Promise<void>;
+  
+  // Captcha session storage
+  storeCaptchaSession(indices: number[]): string; // returns sessionId
+  getCaptchaSession(sessionId: string): number[] | undefined;
+  removeCaptchaSession(sessionId: string): void;
 }
 
 export class DatabaseStorage implements IStorage {
   // In-memory store for active login challenges to keep them ephemeral
   private challenges: Map<string, { username: string; code: string; expiresAt: number }>;
+  // In-memory store for captcha sessions
+  private captchaSessions: Map<string, { indices: number[]; expiresAt: number }>;
 
   constructor() {
     this.challenges = new Map();
+    this.captchaSessions = new Map();
+    
+    // Cleanup expired captcha sessions every minute
+    setInterval(() => {
+      const now = Date.now();
+      for (const [id, session] of this.captchaSessions.entries()) {
+        if (now > session.expiresAt) {
+          this.captchaSessions.delete(id);
+        }
+      }
+    }, 60 * 1000);
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -59,6 +77,30 @@ export class DatabaseStorage implements IStorage {
 
   async removeChallenge(challengeId: string): Promise<void> {
     this.challenges.delete(challengeId);
+  }
+
+  storeCaptchaSession(indices: number[]): string {
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    // Expire in 5 minutes
+    this.captchaSessions.set(sessionId, {
+      indices,
+      expiresAt: Date.now() + 5 * 60 * 1000
+    });
+    return sessionId;
+  }
+
+  getCaptchaSession(sessionId: string): number[] | undefined {
+    const session = this.captchaSessions.get(sessionId);
+    if (!session) return undefined;
+    if (Date.now() > session.expiresAt) {
+      this.captchaSessions.delete(sessionId);
+      return undefined;
+    }
+    return session.indices;
+  }
+
+  removeCaptchaSession(sessionId: string): void {
+    this.captchaSessions.delete(sessionId);
   }
 }
 

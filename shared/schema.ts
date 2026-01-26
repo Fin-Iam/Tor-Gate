@@ -44,13 +44,14 @@ export type LoginVerifyResponse = {
 
 // Captcha Flow
 export type CaptchaChallengeResponse = {
-  onionUrlMasked: string; // The URL with missing chars, or just the indices to ask for
-  indices: number[];      // Which indices the user needs to fill
-  length: number;         // Total length of URL
+  imageBase64: string;    // Base64 encoded captcha image
+  sessionId: string;      // Session ID to track this captcha
+  count: number;          // Number of characters to enter (always 6)
 };
 
 export type CaptchaVerifyRequest = {
-  characters: string[]; // The characters the user filled in
+  sessionId: string;      // The session ID from the challenge
+  characters: string[];   // The characters the user filled in
 };
 
 export type CaptchaVerifyResponse = {
