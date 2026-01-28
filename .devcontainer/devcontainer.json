@@ -1,44 +1,61 @@
 {
-"name": "tor-gate Flarum Security",
-"dockerComposeFile": "docker-compose.yml",
-"service": "tor-gate-flarum",
-"workspaceFolder": "/workspaces/tor-gate-flarum",
-"forwardPorts": [8080, 9001, 5432],
-"portsAttributes": {
-"8080": { "label": "tor-gate (via Nginx)", "onAutoForward": "openPreview" },
-"9001": { "label": "Flarum (Internal)", "onAutoForward": "notify" },
-"5432": { "label": "PostgreSQL", "onAutoForward": "notify" }
-},
-"postCreateCommand": "bash .devcontainer/setup.sh",
-"postStartCommand": "bash .devcontainer/start-services.sh",
-"customizations": {
-"vscode": {
-"extensions": [
-"dbaeumer.vscode-eslint",
-"ms-vscode.vscode-typescript-next",
-"bmewburn.vscode-intelephense-client",
-"ms-azuretools.vscode-docker",
-"github.vscode-github-actions",
-"esbenp.prettier-vscode",
-"streetsidesoftware.code-spell-checker"
-],
-"settings": {
-"terminal.integrated.defaultProfile.linux": "bash",
-"editor.formatOnSave": true,
-"files.autoSave": "afterDelay"
-}
-}
-},
-"containerEnv": {
-"NODE_ENV": "development",
-"PGUSER": "forum_user",
-"PGPASSWORD": "forum_password",
-"PGDATABASE": "forum_db",
-"PGHOST": "localhost",
-"ADMIN_USERNAME": "Trippies",
-"ADMIN_PASSWORD": "Qzz908kasr15!"
-},
-"features": {
-"ghcr.io/devcontainers/features/github-cli:1": {}
-}
+  "name": "Flarum Security Gateway",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "flarum",
+  "workspaceFolder": "/var/www/flarum",
+  "forwardPorts": [
+    8080,
+    8081,
+    3306,
+    6379
+  ],
+  "portsAttributes": {
+    "8080": {
+      "label": "Flarum Forum",
+      "onAutoForward": "openPreview"
+    },
+    "8081": {
+      "label": "phpMyAdmin",
+      "onAutoForward": "notify"
+    },
+    "3306": {
+      "label": "MariaDB"
+    },
+    "6379": {
+      "label": "Redis"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postStartCommand": "bash .devcontainer/start-services.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bmewburn.vscode-intelephense-client",
+        "ms-azuretools.vscode-docker",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "ms-vscode.vscode-typescript-next",
+        "streetsidesoftware.code-spell-checker",
+        "redhat.vscode-yaml",
+        "github.vscode-github-actions"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true,
+        "files.autoSave": "afterDelay",
+        "php.validate.executablePath": "/usr/bin/php"
+      }
+    }
+  },
+  "containerEnv": {
+    "FLARUM_DEBUG": "true",
+    "DB_HOST": "mariadb",
+    "DB_USERNAME": "flarum",
+    "DB_PASSWORD": "flarum_secret_password"
+  },
+  "remoteUser": "root",
+  "mounts": [
+    "source=${localWorkspaceFolder}/.devcontainer/data,target=/var/lib/mysql,type=bind",
+    "source=${localWorkspaceFolder}/.devcontainer/logs,target=/var/log,type=bind"
+  ]
 }
