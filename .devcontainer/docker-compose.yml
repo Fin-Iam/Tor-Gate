@@ -1,91 +1,132 @@
 version: '3.8'
 
 services:
-  # Flarum Forum with Security Gateway
-  flarum:
-    build:
-      context: .
-      target: development
-    container_name: flarum-forum
-    ports:
-      - "8080:80"
-    volumes:
-      - ./flarum-data:/var/www/flarum/public/assets
-      - ./security-gateway:/var/www/security-gateway
-      - ./logs:/var/log/nginx
-    environment:
-      - FLARUM_DEBUG=true
-      - DB_HOST=mariadb
-      - DB_PORT=3306
-      - DB_DATABASE=flarum
-      - DB_USERNAME=flarum
-      - DB_PASSWORD=flarum_secret_password
-      - FORUM_URL=http://localhost:8080
-      - ONION_URL=your-onion-address-here.onion
-    depends_on:
-      mariadb:
-        condition: service_healthy
-    networks:
-      - flarum-network
-    restart: unless-stopped
+tor-gate:
+build:
+context: ./torgate
+dockerfile: Dockerfile
+ports:
+- "8080:80"
+volumes:
+- ./torgate:/app
+- /app/node_modules
+environment:
+NODE_ENV: development
+PGHOST: postgres
+PGPORT: 5432
+PGUSER: forum_user
+PGPASSWORD: forum_password
+PGDATABASE: forum_db
+depends_on:
+postgres:
+condition: service_healthy
+networks:
+- tor-gate-network
+- flarum-network # so it can access Flarum
 
-  # MariaDB Database
-  mariadb:
-    image: mariadb:10.11
-    container_name: flarum-db
-    ports:
-      - "3306:3306"
-    volumes:
-      - mariadb-data:/var/lib/mysql
-      - ./init-scripts:/docker-entrypoint-initdb.d
-    environment:
-      - MYSQL_ROOT_PASSWORD=root_secret_password
-      - MYSQL_DATABASE=flarum
-      - MYSQL_USER=flarum
-      - MYSQL_PASSWORD=flarum_secret_password
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - flarum-network
-    restart: unless-stopped
+postgres:
+image: postgres:15
+environment:
+POSTGRES_USER: forum_user
+POSTGRES_PASSWORD: forum_password
+POSTGRES_DB: forum_db
+volumes:
+- postgres-data:/var/lib/postgresql/data
+healthcheck:
+test: ["CMD-SHELL", "pg_isready -U forum_user"]
+interval: 10s
+timeout: 5s
+retries: 5
+networks:
+- tor-gate-network
 
-  # Redis for session/cache (optional but recommended)
-  redis:
-    image: redis:7-alpine
-    container_name: flarum-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    command: redis-server --appendonly yes
-    networks:
-      - flarum-network
-    restart: unless-stopped
+flarum:
+build:
+context: .
+target: development
+container_name: flarum-forum
+# Do not expose ports publicly, only internally
+# ports:
+# - "9001:80"
+volumes:
+- ./flarum-data:/var/www/flarum/public/assets
+- ./security-gateway:/var/www/security-gateway
+- ./logs:/var/log/nginx
+environment:
+- FLARUM_DEBUG=true
+- DB_HOST=mariadb
+- DB_PORT=3306
+- DB_DATABASE=flarum
+- DB_USERNAME=flarum
+- DB_PASSWORD=flarum_secret_password
+- FORUM_URL=http://localhost:8080
+- ONION_URL=your-onion-address-here.onion
+depends_on:
+mariadb:
+condition: service_healthy
+networks:
+- flarum-network
+restart: unless-stopped
 
-  # phpMyAdmin for database management (dev only)
-  phpmyadmin:
-    image: phpmyadmin:latest
-    container_name: flarum-phpmyadmin
-    ports:
-      - "8081:80"
-    environment:
-      - PMA_HOST=mariadb
-      - PMA_USER=flarum
-      - PMA_PASSWORD=flarum_secret_password
-    depends_on:
-      - mariadb
-    networks:
-      - flarum-network
-    profiles:
-      - dev
+mariadb:
+image: mariadb:10.11
+container_name: flarum-db
+# Do not expose ports publicly, only internally
+# ports:
+# - "3306:3306"
+volumes:
+- mariadb-data:/var/lib/mysql
+- ./init-scripts:/docker-entrypoint-initdb.d
+environment:
+- MYSQL_ROOT_PASSWORD=root_secret_password
+- MYSQL_DATABASE=flarum
+- MYSQL_USER=flarum
+- MYSQL_PASSWORD=flarum_secret_password
+healthcheck:
+test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+interval: 10s
+timeout: 5s
+retries: 5
+networks:
+- flarum-network
+restart: unless-stopped
+
+redis:
+image: redis:7-alpine
+container_name: flarum-redis
+# Do not expose ports publicly, only internally
+# ports:
+# - "6379:6379"
+volumes:
+- redis-data:/data
+command: redis-server --appendonly yes
+networks:
+- flarum-network
+restart: unless-stopped
+
+phpmyadmin:
+image: phpmyadmin:latest
+container_name: flarum-phpmyadmin
+ports:
+- "8081:80"
+environment:
+- PMA_HOST=mariadb
+- PMA_USER=flarum
+- PMA_PASSWORD=flarum_secret_password
+depends_on:
+- mariadb
+networks:
+- flarum-network
+profiles:
+- dev
 
 networks:
-  flarum-network:
-    driver: bridge
+tor-gate-network:
+driver: bridge
+flarum-network:
+driver: bridge
 
 volumes:
-  mariadb-data:
-  redis-data:
+postgres-data:
+mariadb-data:
+redis-data:
