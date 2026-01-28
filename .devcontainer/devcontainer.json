@@ -1,0 +1,48 @@
+{
+  "name": "Tor-Gate + Flarum",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18"
+    },
+    "ghcr.io/devcontainers/features/postgresql:1": {
+      "version": "14"
+    },
+    "ghcr.io/devcontainers/features/php:1": {
+      "version": "8.2",
+      "extensions": "curl,dom,gd,json,mbstring,openssl,pdo_mysql,pdo_pgsql,tokenizer,zip"
+    },
+    "ghcr.io/devcontainers/features/nginx:1": {
+      "version": "latest"
+    }
+  },
+  "forwardPorts": [80, 443, 9001, 8080],
+  "portsAttributes": {
+    "80": {
+      "label": "HTTP",
+      "onAutoForward": "openPreview"
+    },
+    "443": {
+      "label": "HTTPS"
+    },
+    "9001": {
+      "label": "Flarum Internal"
+    },
+    "8080": {
+      "label": "Alternative HTTP"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bmewburn.vscode-intelephense-client",
+        "bradlc.vscode-tailwindcss",
+        "ms-azuretools.vscode-docker",
+        "streetsidesoftware.code-spell-checker"
+      ]
+    }
+  }
+}
