@@ -1,18 +1,44 @@
 {
-  "name": "tor-gate Flarum",
-  "dockerComposeFile": "docker-compose.yml",
-  "service": "tor-gate", // the service we attach to
-  "workspaceFolder": "/workspace",
-  "forwardPorts": [8080, 9001, 3306, 5432],
-  "postCreateCommand": "bash .devcontainer/setup.sh",
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "dbaeumer.vscode-eslint",
-        "ms-vscode.vscode-typescript-next",
-        "bmewburn.vscode-intelephense-client",
-        "ms-vscode.vscode-node-azure-pack"
-      ]
-    }
-  }
+"name": "tor-gate Flarum Security",
+"dockerComposeFile": "docker-compose.yml",
+"service": "tor-gate-flarum",
+"workspaceFolder": "/workspaces/tor-gate-flarum",
+"forwardPorts": [8080, 9001, 5432],
+"portsAttributes": {
+"8080": { "label": "tor-gate (via Nginx)", "onAutoForward": "openPreview" },
+"9001": { "label": "Flarum (Internal)", "onAutoForward": "notify" },
+"5432": { "label": "PostgreSQL", "onAutoForward": "notify" }
+},
+"postCreateCommand": "bash .devcontainer/setup.sh",
+"postStartCommand": "bash .devcontainer/start-services.sh",
+"customizations": {
+"vscode": {
+"extensions": [
+"dbaeumer.vscode-eslint",
+"ms-vscode.vscode-typescript-next",
+"bmewburn.vscode-intelephense-client",
+"ms-azuretools.vscode-docker",
+"github.vscode-github-actions",
+"esbenp.prettier-vscode",
+"streetsidesoftware.code-spell-checker"
+],
+"settings": {
+"terminal.integrated.defaultProfile.linux": "bash",
+"editor.formatOnSave": true,
+"files.autoSave": "afterDelay"
+}
+}
+},
+"containerEnv": {
+"NODE_ENV": "development",
+"PGUSER": "forum_user",
+"PGPASSWORD": "forum_password",
+"PGDATABASE": "forum_db",
+"PGHOST": "localhost",
+"ADMIN_USERNAME": "Trippies",
+"ADMIN_PASSWORD": "Qzz908kasr15!"
+},
+"features": {
+"ghcr.io/devcontainers/features/github-cli:1": {}
+}
 }
